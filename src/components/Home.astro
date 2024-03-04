@@ -20,7 +20,7 @@
 
     // camara 📹
     // 75 -> ángulo de visión
-    const camera = new THREE.PerspectiveCamera(75, w / h, 1, 5000);
+    const camera = new THREE.PerspectiveCamera(75, w / h, 1, 6000);
     camera.position.z = 500;
     scene.add(camera);
 
@@ -66,7 +66,7 @@
 
     renderer.domElement.addEventListener("click", shootProjectile);
 
-    function shootProjectile(event) {
+    function shootProjectile(event: any) {
       console.log("clicked");
       const projectileGeometry = new THREE.CylinderGeometry(4, 4, 40, 20);
       const projectileMaterial = new THREE.MeshBasicMaterial({
@@ -77,12 +77,9 @@
       projectile.rotateX(0);
       projectile.rotateY(20);
       projectile.rotateZ(0);
-      projectile.position.y = -20;
-
-      console.log(projectile.rotation);
+      projectile.position.y = -10;
 
       scene.add(projectile);
-
 
       function animateProjectile() {
         const projectileBox = new THREE.Box3().setFromObject(projectile);
@@ -128,6 +125,10 @@
           if (distanceTraveled >= maxDistance) {
             scene.remove(projectile);
             return;
+          }
+
+          if (villager.position.z >= 0) {
+            villager.position.set(0, 0, -5000);
           }
 
           requestAnimationFrame(moveProjectile);
