@@ -1,0 +1,113 @@
+<div id="smoke-bkg" class="smoke"></div>
+
+<script>
+  import * as THREE from "three";
+
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+  if (!reducedMotion.matches) {
+    const $bkg = document.getElementById("smoke-bkg");
+
+    let delta = 0;
+    const clock = new THREE.Clock();
+    const interval = 1 / 30; // fps
+
+    let animationFrameId: number = 0;
+
+    let w = window.innerWidth;
+    let h = window.screen.height + 200;
+
+    // inicializar Three.js
+    // 3 cosas básicas: escena, cámara, renderizador
+
+    // escena 🖼️
+    const scene = new THREE.Scene();
+
+    // camara 📹
+    // 75 -> ángulo de visión
+    const camera = new THREE.PerspectiveCamera(75, w / h, 1, 5000);
+    camera.position.z = 500;
+    scene.add(camera);
+
+    // ▶️ renderizador
+    const renderer = new THREE.WebGLRenderer({
+      antialias: false,
+      alpha: true,
+      powerPreference: "high-performance",
+      precision: "lowp",
+    });
+    renderer.setSize(w, h);
+    // color de fondo
+    scene.background = new THREE.Color("#FFFFFF");
+
+    $bkg?.appendChild(renderer.domElement);
+
+    const smokeParticles: THREE.Mesh[] = [];
+
+    const villagerTexture = new THREE.TextureLoader().load("/villager.jpg");
+
+    // 1. geometria
+    const cubeFaceGeo = new THREE.BoxGeometry(500, 500);
+
+    // 2. material
+    const cubeFaceMaterial = new THREE.MeshLambertMaterial({
+      map: villagerTexture,
+      transparent: false,
+      opacity: 1,
+    });
+
+    //light
+
+    const light = new THREE.DirectionalLight(0xffffff, 0.3);
+
+    light.position.set(0, 0, 1);
+
+    scene.add(light);
+
+    //mesh
+
+    const villager = new THREE.Mesh(cubeFaceGeo, cubeFaceMaterial);
+    villager.position.set(0, 0, -5000);
+    scene.add(villager);
+
+    function resize() {
+      h = window.screen.height + 200;
+      w = window.innerWidth;
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h);
+    }
+
+    function animate() {
+      villager.position.set(0, 0, villager.position.z + 10);
+      animationFrameId = requestAnimationFrame(animate);
+      delta += clock.getDelta();
+
+      if (delta > interval) {
+        let count = smokeParticles.length;
+        while (count--) {
+          smokeParticles[count].rotation.z += delta * 0.2;
+        }
+
+        renderer.render(scene, camera);
+
+        delta = 0;
+      }
+    }
+
+    animate();
+
+    // se va a disparar continuamente mientras hace el resize
+    window.addEventListener("resize", resize);
+  }
+</script>
+
+<style>
+  .smoke {
+    position: fixed;
+    top: 0;
+    z-index: -10;
+    width: 100%;
+    opacity: 1;
+  }
+</style>
