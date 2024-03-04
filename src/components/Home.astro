@@ -2,17 +2,12 @@
 
 <script>
   import * as THREE from "three";
+  import { materialAlphaTest } from "three/examples/jsm/nodes/Nodes.js";
 
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
   if (!reducedMotion.matches) {
     const $bkg = document.getElementById("smoke-bkg");
-
-    let delta = 0;
-    const clock = new THREE.Clock();
-    const interval = 1 / 30; // fps
-
-    let animationFrameId: number = 0;
 
     let w = window.innerWidth;
     let h = window.screen.height + 200;
@@ -42,8 +37,6 @@
 
     $bkg?.appendChild(renderer.domElement);
 
-    const smokeParticles: THREE.Mesh[] = [];
-
     const villagerTexture = new THREE.TextureLoader().load("/villager.jpg");
 
     // 1. geometria
@@ -67,8 +60,86 @@
     //mesh
 
     const villager = new THREE.Mesh(cubeFaceGeo, cubeFaceMaterial);
+    const defaultColor = cubeFaceMaterial.color.clone();
     villager.position.set(0, 0, -5000);
     scene.add(villager);
+
+    renderer.domElement.addEventListener("click", shootProjectile);
+
+    function shootProjectile(event) {
+      console.log("clicked");
+      const projectileGeometry = new THREE.CylinderGeometry(4, 4, 40, 20);
+      const projectileMaterial = new THREE.MeshBasicMaterial({
+        color: "red",
+      });
+      const projectile = new THREE.Mesh(projectileGeometry, projectileMaterial);
+
+      projectile.rotateX(0);
+      projectile.rotateY(20);
+      projectile.rotateZ(0);
+      projectile.position.y = -20;
+
+      console.log(projectile.rotation);
+
+      scene.add(projectile);
+
+
+      function animateProjectile() {
+        const projectileBox = new THREE.Box3().setFromObject(projectile);
+        const cubeBox = new THREE.Box3().setFromObject(villager);
+
+        const projectilePosition = projectile.position;
+        const cubePosition = villager.position;
+
+        // Calculate the direction vector for the projectile
+        const direction = new THREE.Vector3(
+          cubePosition.x - projectilePosition.x,
+          cubePosition.y - projectilePosition.y,
+          cubePosition.z - projectilePosition.z
+        ).normalize();
+
+        projectile.position.copy(projectilePosition);
+        const speed = 0.5;
+        const delta = 0.1;
+        const movement = direction.clone().multiplyScalar(delta / speed);
+        const maxDistance = cubePosition.distanceTo(projectilePosition);
+        let distanceTraveled = 0;
+
+        const moveProjectile = () => {
+          projectile.position.add(movement);
+          distanceTraveled += movement.length();
+
+          if (
+            projectileBox.intersectsBox(cubeBox) &&
+            scene.children.includes(projectile)
+          ) {
+            console.log("COLLISION");
+            scene.remove(projectile);
+            console.log(cubeFaceMaterial.color);
+            cubeFaceMaterial.color.set("red");
+            cubeFaceMaterial.needsUpdate = true;
+            setTimeout(() => {
+              console.log("OUT");
+              cubeFaceMaterial.color.set(defaultColor);
+              cubeFaceMaterial.needsUpdate = true;
+            }, 500);
+          }
+
+          if (distanceTraveled >= maxDistance) {
+            scene.remove(projectile);
+            return;
+          }
+
+          requestAnimationFrame(moveProjectile);
+        };
+
+        moveProjectile();
+        requestAnimationFrame(animateProjectile);
+      }
+
+      animateProjectile();
+      requestAnimationFrame(animateProjectile);
+    }
 
     function resize() {
       h = window.screen.height + 200;
@@ -80,24 +151,12 @@
 
     function animate() {
       villager.position.set(0, 0, villager.position.z + 10);
-      animationFrameId = requestAnimationFrame(animate);
-      delta += clock.getDelta();
-
-      if (delta > interval) {
-        let count = smokeParticles.length;
-        while (count--) {
-          smokeParticles[count].rotation.z += delta * 0.2;
-        }
-
-        renderer.render(scene, camera);
-
-        delta = 0;
-      }
+      renderer.render(scene, camera);
+      requestAnimationFrame(animate);
     }
 
     animate();
 
-    // se va a disparar continuamente mientras hace el resize
     window.addEventListener("resize", resize);
   }
 </script>
